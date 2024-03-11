@@ -11,20 +11,43 @@ auto TrieStore::Get(std::string_view key) -> std::optional<ValueGuard<T>> {
   // (2) Lookup the value in the trie.
   // (3) If the value is found, return a ValueGuard object that holds a reference to the value and the
   //     root. Otherwise, return std::nullopt.
-  throw NotImplementedException("TrieStore::Get is not implemented.");
+  Trie cur_root;
+  if (this->root_lock_.try_lock()) {
+    cur_root = this->root_;
+    this->root_lock_.unlock();
+  }
+  auto value_ptr = cur_root.Get<T>(key);
+  if (value_ptr == nullptr) {
+    return std::nullopt;
+  }
+  return ValueGuard<T>(cur_root, *value_ptr);
 }
 
 template <class T>
 void TrieStore::Put(std::string_view key, T value) {
   // You will need to ensure there is only one writer at a time. Think of how you can achieve this.
   // The logic should be somehow similar to `TrieStore::Get`.
-  throw NotImplementedException("TrieStore::Put is not implemented.");
+  this->write_lock_.lock();
+  auto new_root = this->root_.Put(key, std::move(value));
+  {
+    this->root_lock_.lock();
+    this->root_ = new_root;
+    this->root_lock_.unlock();
+  }
+  this->write_lock_.unlock();
 }
 
 void TrieStore::Remove(std::string_view key) {
   // You will need to ensure there is only one writer at a time. Think of how you can achieve this.
   // The logic should be somehow similar to `TrieStore::Get`.
-  throw NotImplementedException("TrieStore::Remove is not implemented.");
+  this->write_lock_.lock();
+  auto new_root = this->root_.Remove(key);
+  {
+    this->root_lock_.lock();
+    this->root_ = new_root;
+    this->root_lock_.unlock();
+  }
+  this->write_lock_.unlock();
 }
 
 // Below are explicit instantiation of template functions.
