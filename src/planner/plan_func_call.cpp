@@ -23,8 +23,8 @@
 
 namespace bustub {
 
-const std::string UPPER_FUNC_NAME = "upper";
-const std::string LOWER_FUNC_NAME = "lower";
+const char UPPER_FUNC_NAME[] = "upper";
+const char LOWER_FUNC_NAME[] = "lower";
 
 // NOLINTNEXTLINE
 auto Planner::GetFuncCallFromFactory(const std::string &func_name, std::vector<AbstractExpressionRef> args)
@@ -32,7 +32,6 @@ auto Planner::GetFuncCallFromFactory(const std::string &func_name, std::vector<A
   // 1. check if the parsed function name is "lower" or "upper".
   // 2. verify the number of args (should be 1), refer to the test cases for when you should throw an `Exception`.
   // 3. return a `StringExpression` std::shared_ptr.
-  std::cout << fmt::format("GetFuncCallFromFactory func_name = {}\n", func_name);
   if (args.size() != 1) {
     throw Exception(fmt::format("func call {} should have 1 argument but received {}", func_name, args.size()));
   }
