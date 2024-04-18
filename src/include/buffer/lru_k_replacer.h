@@ -27,7 +27,8 @@ enum class AccessType { Unknown = 0, Lookup, Scan, Index };
 class LRUKReplacer;
 
 class LRUKNode {
-friend LRUKReplacer;
+  friend LRUKReplacer;
+
  public:
   LRUKNode(frame_id_t fid, size_t k);
 

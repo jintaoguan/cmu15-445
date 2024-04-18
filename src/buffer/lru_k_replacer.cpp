@@ -40,7 +40,7 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
       }
       victim_found = true;
       *frame_id = node.fid_;
-      secondary_list_.erase(std::next(rit).base());;
+      secondary_list_.erase(std::next(rit).base());
       node_store_.erase(it);
       break;
     }
@@ -127,8 +127,6 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
 
 void LRUKReplacer::Remove(frame_id_t frame_id) {}
 
-auto LRUKReplacer::Size() -> size_t {
-    return curr_size_;
-}
+auto LRUKReplacer::Size() -> size_t { return curr_size_; }
 
 }  // namespace bustub
