@@ -14,6 +14,19 @@ namespace bustub {
 
 TEST(TrieTest, ConstructorTest) { auto trie = Trie(); }
 
+TEST(TrieTest, EmptyKeyTest) {
+  auto trie = Trie();
+  trie = trie.Put<uint32_t>("", 111);
+  ASSERT_EQ(*trie.Get<uint32_t>(""), 111);
+  trie = trie.Put<uint32_t>("abc", 222);
+  ASSERT_EQ(*trie.Get<uint32_t>("abc"), 222);
+  trie = trie.Remove("abc");
+  ASSERT_EQ(trie.Get<uint32_t>("abc"), nullptr);
+  ASSERT_EQ(*trie.Get<uint32_t>(""), 111);
+  trie = trie.Remove("");
+  ASSERT_EQ(trie.Get<uint32_t>(""), nullptr);
+}
+
 TEST(TrieTest, BasicPutTest) {
   auto trie = Trie();
   trie = trie.Put<uint32_t>("test-int", 233);
