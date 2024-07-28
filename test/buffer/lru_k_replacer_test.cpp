@@ -95,4 +95,36 @@ TEST(LRUKReplacerTest, SampleTest) {
   ASSERT_EQ(false, lru_replacer.Evict(&value));
   ASSERT_EQ(0, lru_replacer.Size());
 }
+
+
+TEST(LRUKReplacerTest, SecondSimpleTest) {
+  LRUKReplacer lru_replacer(7, 3);
+
+  // [4, 3, 2, 1], []
+  lru_replacer.RecordAccess(1);
+  lru_replacer.RecordAccess(2);
+  lru_replacer.RecordAccess(3); // earliest access time for 3
+  lru_replacer.RecordAccess(4); // earliest access time for 4
+  // [3, 2, 1, 4], []
+  lru_replacer.RecordAccess(1);
+  lru_replacer.RecordAccess(2);
+  lru_replacer.RecordAccess(3);
+  // [3, 4], [2, 1]
+  lru_replacer.RecordAccess(1);
+  lru_replacer.RecordAccess(2);
+
+  // mark all of them evictable
+  lru_replacer.SetEvictable(1, true);
+  lru_replacer.SetEvictable(2, true);
+  lru_replacer.SetEvictable(3, true);
+  lru_replacer.SetEvictable(4, true);
+
+  // 4 has been accessed 1 time, 3 has been accessed 2 times
+  // the earliest access time for 3 was earlier than 4
+  // so we should evict 3 here
+  frame_id_t frame_id;
+  lru_replacer.Evict(&frame_id);
+  ASSERT_EQ(3, frame_id);
+}
+
 }  // namespace bustub
