@@ -163,7 +163,12 @@ class LRUKReplacer {
   size_t replacer_size_;
   size_t k_;
   std::mutex latch_;
+
+  // primary list is to store the item that has been accessed >= k times
+  // recently accessed item is put at front
   std::list<frame_id_t> primary_list_;
+  // secondary list is to store the item that has been accessed < k times
+  // recently accessed item is put at front
   std::list<frame_id_t> secondary_list_;
 };
 

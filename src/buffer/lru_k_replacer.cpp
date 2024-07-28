@@ -26,7 +26,12 @@ LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_fra
 auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
   std::scoped_lock<std::mutex> lock(latch_);
   // try to evict from secondary list first
-  bool victim_found = false;
+  // we don't evict first evitable item in the secondary list, instead we should evict
+  // the evictable item that has the earliest access timestamp in the secondary list
+  // so we have to iterate every item of the secondary list
+  auto victim_found = false;
+  auto earliest_access_timestamp = current_timestamp_;
+  frame_id_t victim_frame_id = -1;
   if (!secondary_list_.empty()) {
     for (auto rit = secondary_list_.rbegin(); rit != secondary_list_.rend(); rit++) {
       auto it = node_store_.find(*rit);
@@ -38,13 +43,22 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
         continue;
       }
       victim_found = true;
-      *frame_id = node.fid_;
-      secondary_list_.erase(std::next(rit).base());
-      node_store_.erase(it);
-      break;
+      if (*it->second.history_.begin() < earliest_access_timestamp) {
+        victim_frame_id = node.fid_;
+        earliest_access_timestamp = *it->second.history_.begin();
+      }
     }
   }
+  if (victim_found) {
+    *frame_id = victim_frame_id;
+    auto it = node_store_.find(victim_frame_id);
+    secondary_list_.erase(it->second.position_);
+    node_store_.erase(it);
+  }
+
   // try primary list if we didn't find the victim from the secondary list
+  // since all items in the primary list has been accessed more than k times
+  // so we just need to evict the first evictable item from back to front
   if (!victim_found && !primary_list_.empty()) {
     for (auto rit = primary_list_.rbegin(); rit != primary_list_.rend(); rit++) {
       auto it = node_store_.find(*rit);
@@ -109,6 +123,7 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id, [[maybe_unused]] AccessType
 }
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
+  std::scoped_lock<std::mutex> lock(latch_);
   auto it = node_store_.find(frame_id);
   if (it == node_store_.end()) {
     return;
@@ -124,8 +139,27 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
   node_store_.emplace(frame_id, node);
 }
 
-void LRUKReplacer::Remove(frame_id_t frame_id) {}
+void LRUKReplacer::Remove(frame_id_t frame_id) {
+  std::scoped_lock<std::mutex> lock(latch_);
+  auto it = node_store_.find(frame_id);
+  if (it == node_store_.end()) {
+    return;
+  }
+  if (!it->second.is_evictable_) {
+    return;
+  }
+  if (it->second.history_.size() >= k_) {
+    primary_list_.erase(it->second.position_);
+  } else {
+    secondary_list_.erase(it->second.position_);
+  }
+  node_store_.erase(it);
+  curr_size_--;
+}
 
-auto LRUKReplacer::Size() -> size_t { return curr_size_; }
+auto LRUKReplacer::Size() -> size_t {
+  std::scoped_lock<std::mutex> lock(latch_);
+  return curr_size_;
+}
 
 }  // namespace bustub
