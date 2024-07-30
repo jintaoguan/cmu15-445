@@ -164,7 +164,9 @@ auto BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty, [[maybe_unus
     return false;
   }
   auto frame_id = it->second;
-  pages_[frame_id].is_dirty_ = is_dirty;
+  if (!pages_[frame_id].IsDirty() && is_dirty) {
+    pages_[frame_id].is_dirty_ = true;
+  }
   pages_[frame_id].pin_count_--;
   if (pages_[frame_id].GetPinCount() == 0) {
     replacer_->SetEvictable(frame_id, true);
